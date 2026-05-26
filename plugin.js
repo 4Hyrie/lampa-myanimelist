@@ -1,0 +1,1 @@
+(function () {\n    'use strict';\n    Lampa.Utils.putScriptAsync([\n        'https://4hyrie.github.io/lampa-myanimelist/main/myanimelist/myanimelist.js'\n    ], function () {\n        console.log('[MAL Plugin] MyAnimeList extension loaded successfully');\n    });\n})();
