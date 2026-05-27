@@ -8,13 +8,24 @@ var MAL = (function () {
 
     var JIKAN_URL = 'https://api.jikan.moe/v4';
     var network = new Lampa.Reguest();
+    var cache = {};
 
     return {
         /**
-         * Пошук аніме
+         * Поиск аниме
          */
-        search: function (query, page, success, error) {
-            var url = JIKAN_URL + '/anime?query=' + encodeURIComponent(query) + '&page=' + (page || 1) + '&limit=25';
+        search: function (query, page, filters, success, error) {
+            var url = JIKAN_URL + '/anime?query=' + encodeURIComponent(query) + '&page=' + (page || 1) + '&limit=25&order_by=score&sort=desc';
+            
+            if (filters && filters.type) {
+                url += '&type=' + filters.type;
+            }
+            if (filters && filters.status) {
+                url += '&status=' + filters.status;
+            }
+            if (filters && filters.min_score) {
+                url += '&min_score=' + filters.min_score;
+            }
 
             network.silent(url, function (data) {
                 try {
@@ -29,10 +40,19 @@ var MAL = (function () {
         },
 
         /**
-         * Топ аніме
+         * Топ аніме з фільтрами
          */
-        getTop: function (type, page, success, error) {
-            var url = JIKAN_URL + '/top/anime?page=' + (page || 1) + '&limit=25&filter=bypopularity';
+        getTop: function (page, filters, success, error) {
+            var url = JIKAN_URL + '/top/anime?page=' + (page || 1) + '&limit=25';
+            
+            if (filters) {
+                if (filters.filter) {
+                    url += '&filter=' + filters.filter; // airing, upcoming, bypopularity, favorite
+                }
+                if (filters.type) {
+                    url += '&type=' + filters.type;
+                }
+            }
 
             network.silent(url, function (data) {
                 try {
@@ -49,8 +69,8 @@ var MAL = (function () {
         /**
          * Аніме сезону
          */
-        getSeason: function (year, season, success, error) {
-            var url = JIKAN_URL + '/seasons/' + year + '/' + season + '?limit=25';
+        getSeason: function (year, season, page, success, error) {
+            var url = JIKAN_URL + '/seasons/' + year + '/' + season + '?page=' + (page || 1) + '&limit=25';
 
             network.silent(url, function (data) {
                 try {
@@ -68,12 +88,18 @@ var MAL = (function () {
          * Деталі аніме по ID
          */
         getById: function (malId, success, error) {
+            if (cache[malId]) {
+                success(cache[malId]);
+                return;
+            }
+
             var url = JIKAN_URL + '/anime/' + malId + '/full';
 
             network.silent(url, function (data) {
                 try {
                     var parsed = typeof data === 'string' ? JSON.parse(data) : data;
                     if (parsed && parsed.data) {
+                        cache[malId] = parsed.data;
                         if (success) success(parsed.data);
                     } else {
                         if (error) error('Invalid response');
@@ -87,7 +113,7 @@ var MAL = (function () {
         },
 
         /**
-         * Персонажи аніме
+         * Персонажі аніме
          */
         getCharacters: function (malId, success, error) {
             var url = JIKAN_URL + '/anime/' + malId + '/characters';
@@ -105,7 +131,7 @@ var MAL = (function () {
         },
 
         /**
-         * Персонал аніме (режисери, композитори)
+         * Персонал аніме
          */
         getStaff: function (malId, success, error) {
             var url = JIKAN_URL + '/anime/' + malId + '/staff';
